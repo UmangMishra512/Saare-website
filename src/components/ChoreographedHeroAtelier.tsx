@@ -157,15 +157,39 @@ export const ChoreographedHeroAtelier: React.FC<ChoreographedHeroAtelierProps> =
   // Atelier layer fades in during 0.35 -> 0.75
   const atelierOpacity = Math.min(1, Math.max(0, (scrollProgress - 0.25) / 0.45));
 
+  // Responsive mobile detection with real-time resize listener
+  const [isMobile, setIsMobile] = useState(() => {
+    return typeof window !== 'undefined' ? window.innerWidth < 1024 : false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // 3D Model Flight Coordinates:
-  // IN HERO: Right Column (x = +18.5vw, y = 0px, scale = 1.22 -> Large, Grand, full face & jewelry visible!)
-  // IN ATELIER: Left Column Stage (x = -21.5vw, y = 14px, scale = 0.78 -> Petite, perfectly fitted inside the carousel!)
-  const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 1024 : true;
+  // DESKTOP:
+  // IN HERO: Right Column (x = +18.5vw, y = 0px, scale = 1.22 -> Grand regal posture)
+  // IN ATELIER: Left Column Stage (x = -21.5vw, y = 14px, scale = 0.78 -> Fitted inside carousel)
+  // MOBILE (Glassmorphic Staging):
+  // IN HERO: Centered High (x = 0vw, y = -65px, scale = 1.05 -> Face & jewelry clear of card)
+  // IN ATELIER: Docked (x = 0vw, y = 10px, scale = 0.65)
+  const isDesktop = !isMobile;
   const startX = isDesktop ? 18.5 : 0; // vw
   const targetX = isDesktop ? -21.5 : 0; // vw
+
+  const startScale = isDesktop ? 1.22 : 1.05;
+  const targetScale = isDesktop ? 0.78 : 0.65;
+  const currentModelScale = startScale + (targetScale - startScale) * easedFlight;
+
+  const startY = isDesktop ? 0 : -65;
+  const targetY = isDesktop ? 14 : 10;
+  const currentModelY = startY + (targetY - startY) * easedFlight;
   const currentModelX = startX + (targetX - startX) * easedFlight;
-  const currentModelY = 0 + (14 - 0) * easedFlight; // px
-  const currentModelScale = 1.22 + (0.78 - 1.22) * easedFlight; // Scales down from 1.22 in Hero to 0.78 in Atelier!
+
   const currentModelRotY = Math.sin(easedFlight * Math.PI) * 24;
 
   const activeLook = looks[activeLookIndex];
@@ -187,7 +211,7 @@ export const ChoreographedHeroAtelier: React.FC<ChoreographedHeroAtelierProps> =
         </div>
 
         {/* ============================================================ */}
-        {/* STAGE 1: ASYMMETRIC EDITORIAL HERO (Left: Text • Right: Grand Model) */}
+        {/* STAGE 1: EDITORIAL HERO (Desktop: 2-Column • Mobile: Glassmorphic Floating Card) */}
         {/* ============================================================ */}
         <div
           className="absolute inset-0 z-20 flex items-center justify-center px-4 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full pointer-events-none"
@@ -197,9 +221,10 @@ export const ChoreographedHeroAtelier: React.FC<ChoreographedHeroAtelierProps> =
             pointerEvents: heroOpacity > 0.4 ? 'auto' : 'none',
           }}
         >
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center w-full pt-16">
+          {/* DESKTOP LAYOUT (1024px and above) */}
+          <div className="hidden lg:grid grid-cols-12 gap-8 items-center w-full pt-16">
             {/* Left Column (7 cols): Editorial Typography & Actions */}
-            <div className="lg:col-span-7 flex flex-col items-start text-left">
+            <div className="col-span-7 flex flex-col items-start text-left">
               {/* Curated Heritage Crest */}
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-parchment-200/90 border border-obsidian-900/10 shadow-sm backdrop-blur-sm mb-5">
                 <Award className="w-3.5 h-3.5 text-gold-600" />
@@ -260,13 +285,51 @@ export const ChoreographedHeroAtelier: React.FC<ChoreographedHeroAtelierProps> =
             </div>
 
             {/* Right Column (5 cols): Reserved open space for the Grand 3D Model */}
-            <div className="lg:col-span-5 hidden lg:block" />
+            <div className="col-span-5" />
+          </div>
+
+          {/* MOBILE LAYOUT (Under 1024px: Haute Glassmorphic Floating Card) */}
+          <div className="flex lg:hidden flex-col justify-end items-center w-full h-full pb-8 pt-20 px-3">
+            <div className="w-full max-w-sm bg-parchment-100/90 backdrop-blur-xl border border-gold-500/35 rounded-3xl p-5 shadow-2xl flex flex-col items-center text-center relative z-40 pointer-events-auto">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-parchment-200/90 border border-obsidian-900/10 shadow-sm mb-2.5">
+                <Award className="w-3 h-3 text-gold-600" />
+                <span className="text-[9px] uppercase tracking-[0.2em] font-semibold text-obsidian-800">
+                  GI-Tag Certified Handloom
+                </span>
+                <span className="w-1 h-1 rounded-full bg-gold-500" />
+                <span className="text-[9px] font-mono text-obsidian-800">2026</span>
+              </div>
+
+              <h2 className="font-serif text-xl sm:text-2xl font-normal text-obsidian-950 tracking-tight leading-tight">
+                Where Architectural Form Meets Sacred Silk.
+              </h2>
+
+              <p className="mt-2 text-[11px] text-obsidian-700 font-light leading-relaxed max-w-xs">
+                Experience pure Kanchipuram and Banarasi handlooms draped over 3D spatial mannequins.
+              </p>
+
+              <div className="mt-3.5 w-full flex flex-col gap-2">
+                <button
+                  onClick={scrollToAtelier}
+                  className="w-full bg-obsidian-950 hover:bg-obsidian-900 text-parchment-50 py-3 rounded-full text-[11px] uppercase tracking-widest font-semibold transition-all shadow-lg flex items-center justify-center gap-2 group"
+                >
+                  <span>Enter Runway Atelier</span>
+                  <Sparkles className="w-3.5 h-3.5 text-gold-400 group-hover:rotate-45 transition-transform" />
+                </button>
+              </div>
+
+              <div className="mt-2.5 flex items-center gap-1.5 text-obsidian-800">
+                <ArrowDown className="w-3 h-3 text-gold-600 animate-bounce" />
+                <span className="text-[9px] uppercase tracking-widest font-medium">
+                  Scroll down to explore 360°
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* ============================================================ */}
         {/* THE TRAVELLING 3D MODEL */}
-        {/* Starts Grand on Right (+18.5vw, scale 1.22) -> Glides to Left Stage (-21.5vw, scale 0.78) */}
         {/* ============================================================ */}
         <div
           className="absolute z-30 pointer-events-none flex items-center justify-center will-change-transform"
@@ -274,8 +337,8 @@ export const ChoreographedHeroAtelier: React.FC<ChoreographedHeroAtelierProps> =
             transform: `translate3d(${currentModelX}vw, ${currentModelY}px, 0px) scale(${currentModelScale}) rotateY(${currentModelRotY}deg)`,
             transformStyle: 'preserve-3d',
             perspective: '1200px',
-            top: isDesktop ? '50%' : '54%',
-            marginTop: '-190px',
+            top: isDesktop ? '50%' : '42%',
+            marginTop: isDesktop ? '-190px' : '-180px',
           }}
         >
           {/* Ambient Warm Golden Halo beneath Model */}
